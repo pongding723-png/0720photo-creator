@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<title>拼貼加字工具</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #1b1d22;
+    --panel: #24272e;
+    --panel-line: #34383f;
+    --ink: #eceae4;
+    --ink-dim2: #9a9ca3;
+    --accent: #f4c430;
+    --accent-ink: #1b1d22;
+    --danger: #e2665a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #2a2e36 0%, transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Manrope", "Noto Sans TC", sans-serif;
+    min-height:100vh;
+    -webkit-text-size-adjust:100%;
+  }
+  button{ touch-action:manipulation; }
+  .wrap{
+    max-width:1180px;
+    margin:0 auto;
+    padding:36px 20px 60px;
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+    padding-bottom: max(60px, env(safe-area-inset-bottom));
+  }
+  header{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:28px;
+    flex-wrap:wrap;
+  }
+  header .eyebrow{
+    font-size:12px;
+    letter-spacing:.14em;
+    color:var(--accent);
+    font-weight:800;
+    text-transform:uppercase;
+  }
+  h1{
+    font-size:26px;
+    margin:0;
+    font-weight:800;
+    letter-spacing:-0.01em;
+  }
+  header p{
+    margin:0;
+    color:var(--ink-dim2);
+    font-size:14px;
+    width:100%;
+  }
+  .layout{
+    display:grid;
+    grid-template-columns: 340px 1fr;
+    gap:22px;
+    align-items:start;
+  }
+  @media (max-width: 860px){
+    .layout{ grid-template-columns: 1fr; }
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    border-radius:14px;
+    padding:20px;
+  }
+  .panel + .panel{ margin-top:18px; }
+  .panel h2{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    color:var(--ink-dim2);
+    margin:0 0 14px;
+    font-weight:800;
+  }
+  .drop{
+    border:1.5px dashed var(--panel-line);
+    border-radius:10px;
+    padding:22px 14px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  .drop:hover, .drop.drag{
+    border-color:var(--accent);
+    background:rgba(244,196,48,0.06);
+  }
+  .drop svg{ margin-bottom:8px; opacity:.8; }
+  .drop .main{ font-size:14px; font-weight:600; }
+  .drop .sub{ font-size:12px; color:var(--ink-dim2); margin-top:4px; }
+  input[type=file]{ display:none; }
+
+  .thumbs{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap:8px;
+    margin-top:14px;
+  }
+  .thumbs .t{
+    aspect-ratio:1/1;
+    border-radius:8px;
+    overflow:hidden;
+    background:#111318;
+    position:relative;
+    border:1px solid var(--panel-line);
+  }
+  .thumbs .t img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .thumbs .t .idx{
+    position:absolute; top:4px; left:4px;
+    background:rgba(0,0,0,.55);
+    color:#fff; font-size:10px; font-weight:700;
+    padding:1px 6px; border-radius:20px;
+  }
+
+  .status{
+    margin-top:12px;
+    font-size:12.5px;
+    color:var(--ink-dim2);
+    min-height:16px;
+  }
+  .status.err{ color:var(--danger); font-weight:700; }
+  .status.ok{ color:#8fd19e; font-weight:700; }
+
+  .clear-btn{
+    width:100%;
+    margin-top:12px;
+    padding:9px;
+    border-radius:8px;
+    border:1px solid var(--panel-line);
+    background:transparent;
+    color:var(--ink-dim2);
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .clear-btn:hover{ border-color:var(--danger); color:var(--danger); }
+
+  textarea{
+    width:100%;
+    min-height:78px;
+    resize:vertical;
+    background:#15171b;
+    border:1px solid var(--panel-line);
+    border-radius:8px;
+    color:var(--ink);
+    padding:10px 12px;
+    font-family:"Noto Sans TC", sans-serif;
+    font-size:14px;
+    line-height:1.5;
+  }
+  textarea:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+
+  .row{ display:flex; gap:8px; margin-top:10px; }
+  .seg{
+    flex:1;
+    display:flex;
+    gap:6px;
+  }
+  .seg button{
+    flex:1;
+    padding:9px 6px;
+    border-radius:8px;
+    border:1px solid var(--panel-line);
+    background:#1a1c21;
+    color:var(--ink);
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+    transition:all .12s;
+  }
+  .seg button.active{
+    background:var(--accent);
+    color:var(--accent-ink);
+    border-color:var(--accent);
+  }
+  .seg button:hover:not(.active){ border-color:#50545c; }
+
+  .sizectl{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:10px;
+  }
+  .sizectl button{
+    width:42px; height:42px;
+    border-radius:10px;
+    border:1px solid var(--panel-line);
+    background:#1a1c21;
+    color:var(--ink);
+    font-size:20px;
+    font-weight:800;
+    cursor:pointer;
+    line-height:1;
+  }
+  .sizectl button:hover{ border-color:var(--accent); color:var(--accent); }
+  .sizectl button:active{ transform:scale(0.94); }
+  .sizectl .pct{
+    flex:1;
+    text-align:center;
+    font-weight:800;
+    font-size:14px;
+    color:var(--ink-dim2);
+  }
+
+  label.field-label{
+    display:block;
+    font-size:12px;
+    color:var(--ink-dim2);
+    font-weight:700;
+    margin:14px 0 6px;
+  }
+  label.field-label:first-child{ margin-top:0; }
+
+  .canvas-holder{
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    border-radius:14px;
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:16px;
+  }
+  #stage{
+    max-width:100%;
+    height:auto;
+    border-radius:8px;
+    background:
+      repeating-conic-gradient(#20232a 0% 25%, #23262d 0% 50%) 50% / 22px 22px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+    cursor:grab;
+    touch-action:none;
+  }
+  #stage:active{ cursor:grabbing; }
+  .empty-hint{
+    color:var(--ink-dim2);
+    font-size:13.5px;
+    text-align:center;
+    padding:60px 20px;
+  }
+
+  .canvas-hint{
+    font-size:12px;
+    color:var(--ink-dim2);
+    text-align:center;
+  }
+
+  .photo-toolbar{
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    flex-wrap:wrap;
+    background:#1a1c21;
+    border:1px solid var(--panel-line);
+    border-radius:10px;
+    padding:10px 14px;
+  }
+  .photo-toolbar #selInfo{
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--accent);
+    white-space:nowrap;
+  }
+  #photoLabelInput{
+    flex:1;
+    min-width:160px;
+    background:#101216;
+    border:1px solid var(--panel-line);
+    border-radius:8px;
+    color:var(--ink);
+    padding:7px 10px;
+    font-family:inherit;
+    font-size:12.5px;
+  }
+  #photoLabelInput:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .sizectl.compact{ margin-top:0; gap:6px; }
+  .sizectl.compact button{ width:32px; height:32px; font-size:16px; border-radius:8px; }
+  .sizectl.compact .pct{ font-size:12.5px; min-width:44px; }
+  .mini-btn{
+    margin-left:auto;
+    padding:7px 14px;
+    border-radius:8px;
+    border:1px solid var(--panel-line);
+    background:transparent;
+    color:var(--ink-dim2);
+    font-family:inherit;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .mini-btn:hover{ border-color:var(--accent); color:var(--accent); }
+
+  .download-btn{
+    width:100%;
+    padding:13px;
+    border-radius:10px;
+    border:none;
+    background:var(--accent);
+    color:var(--accent-ink);
+    font-family:inherit;
+    font-weight:800;
+    font-size:14.5px;
+    cursor:pointer;
+    letter-spacing:.01em;
+  }
+  .download-btn:disabled{
+    background:#3a3d44;
+    color:#787c85;
+    cursor:not-allowed;
+  }
+  .download-btn:not(:disabled):hover{ filter:brightness(1.06); }
+
+  footer{
+    margin-top:26px;
+    font-size:12px;
+    color:#63666d;
+    text-align:center;
+  }
+
+  .save-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(10,11,13,0.94);
+    z-index:1000;
+    padding:20px;
+    padding-top: max(20px, env(safe-area-inset-top));
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+    overflow-y:auto;
+  }
+  .save-overlay.show{ display:flex; align-items:center; justify-content:center; }
+  .save-overlay-inner{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:14px;
+    max-width:520px;
+    width:100%;
+  }
+  .save-hint{
+    color:var(--accent);
+    font-size:14px;
+    font-weight:700;
+    text-align:center;
+    margin:0;
+  }
+  #saveOverlayImg{
+    width:100%;
+    height:auto;
+    border-radius:10px;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);
+    -webkit-touch-callout:default;
+  }
+  .save-close-btn{
+    padding:11px 28px;
+    border-radius:10px;
+    border:1px solid var(--panel-line);
+    background:#1a1c21;
+    color:var(--ink);
+    font-family:inherit;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .save-close-btn:hover{ border-color:var(--accent); color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Photo Collage</span>
+    <h1>拼貼加字工具</h1>
+    <p>上傳 1～6 張照片,自動排版並加上標題文字,輸出 4:3 比例圖片。</p>
+  </header>
+
+  <div class="layout">
+    <!-- LEFT: controls -->
+    <div>
+      <div class="panel">
+        <h2>1. 上傳照片(1～6張)</h2>
+        <div class="drop" id="dropZone">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f4c430" stroke-width="1.6">
+            <path d="M12 16V4M12 4l-4 4M12 4l4 4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="main">點擊或拖曳照片到這裡</div>
+          <div class="sub">1 張直接加字,2～6 張自動拼貼</div>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" multiple>
+        <div class="thumbs" id="thumbs"></div>
+        <div class="status" id="status">尚未上傳照片</div>
+        <button class="clear-btn" id="clearBtn">清除畫面</button>
+      </div>
+
+      <div class="panel">
+        <h2>2. 標題文字</h2>
+        <label class="field-label">文字內容</label>
+        <textarea id="caption" placeholder="輸入要顯示在照片上的文字…">在這裡輸入文字</textarea>
+
+        <label class="field-label">文字位置</label>
+        <div class="seg" id="posSeg">
+          <button data-pos="top">上方置中</button>
+          <button data-pos="middle" class="active">中間置中</button>
+          <button data-pos="bottom">下方置中</button>
+        </div>
+
+        <label class="field-label">文字大小(點擊調整)</label>
+        <div class="sizectl">
+          <button id="sizeDown" aria-label="縮小文字">－</button>
+          <div class="pct" id="sizePct">100%</div>
+          <button id="sizeUp" aria-label="放大文字">＋</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: canvas preview -->
+    <div class="canvas-holder">
+      <canvas id="stage" width="1200" height="900"></canvas>
+
+      <div class="photo-toolbar" id="photoToolbar" style="display:none;">
+        <span id="selInfo">已選取照片</span>
+        <div class="sizectl compact">
+          <button id="photoZoomOut" aria-label="縮小照片">－</button>
+          <div class="pct" id="photoZoomPct">100%</div>
+          <button id="photoZoomIn" aria-label="放大照片">＋</button>
+        </div>
+        <input type="text" id="photoLabelInput" placeholder="這張照片的角落說明文字(選填)">
+        <button class="mini-btn" id="photoReset">重設</button>
+      </div>
+
+      <div class="canvas-hint">拖曳照片可調整取景位置;點擊一張照片再點另一張可互換位置;選取後可在工具列輸入該照片角落的說明文字。</div>
+
+      <button class="download-btn" id="downloadBtn" disabled>下載拼貼圖片(PNG)</button>
+    </div>
+  </div>
+
+  <footer>所有處理都在你的瀏覽器內完成,照片不會上傳到任何伺服器。</footer>
+</div>
+
+<div class="save-overlay" id="saveOverlay">
+  <div class="save-overlay-inner">
+    <p class="save-hint">按住圖片不放,選擇「儲存圖片」即可存到手機相簿</p>
+    <img id="saveOverlayImg" alt="拼貼結果">
+    <button class="save-close-btn" id="saveOverlayClose">關閉</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('stage');
+  const ctx = canvas.getContext('2d');
+  const fileInput = document.getElementById('fileInput');
+  const dropZone = document.getElementById('dropZone');
+  const thumbsEl = document.getElementById('thumbs');
+  const statusEl = document.getElementById('status');
+  const captionEl = document.getElementById('caption');
+  const posSeg = document.getElementById('posSeg');
+  const sizeUpBtn = document.getElementById('sizeUp');
+  const sizeDownBtn = document.getElementById('sizeDown');
+  const sizePct = document.getElementById('sizePct');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const photoToolbar = document.getElementById('photoToolbar');
+  const selInfo = document.getElementById('selInfo');
+  const photoZoomIn = document.getElementById('photoZoomIn');
+  const photoZoomOut = document.getElementById('photoZoomOut');
+  const photoZoomPct = document.getElementById('photoZoomPct');
+  const photoLabelInput = document.getElementById('photoLabelInput');
+  const photoReset = document.getElementById('photoReset');
+  const clearBtn = document.getElementById('clearBtn');
+  const saveOverlay = document.getElementById('saveOverlay');
+  const saveOverlayImg = document.getElementById('saveOverlayImg');
+  const saveOverlayClose = document.getElementById('saveOverlayClose');
+
+  function isIOS(){
+    return /iP(hone|od|ad)/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  let photos = [];         // {img, scale, panX, panY}
+  let rects = [];          // current layout rects, refreshed each render()
+  let selectedIndex = null;
+  let dragState = null;
+  let position = 'middle'; // top | middle | bottom
+  let sizeMultiplier = 1;
+
+  function clamp(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
+
+  function setStatus(msg, type){
+    statusEl.textContent = msg;
+    statusEl.className = 'status' + (type ? ' ' + type : '');
+  }
+
+  function renderEmpty(){
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    ctx.fillStyle = '#15171b';
+    ctx.fillRect(0,0,canvas.width, canvas.height);
+    ctx.fillStyle = '#63666d';
+    ctx.font = '600 22px Manrope, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('上傳 1～6 張照片以預覽結果', canvas.width/2, canvas.height/2);
+    downloadBtn.disabled = true;
+    photoToolbar.style.display = 'none';
+  }
+
+  // ---- layout definitions: returns array of {x,y,w,h} rects for n images ----
+  function getLayout(n, W, H){
+    if(n === 1){
+      return [
+        {x:0, y:0, w:W, h:H}
+      ];
+    }
+    if(n === 2){
+      return [
+        {x:0, y:0, w:W, h:H/2},
+        {x:0, y:H/2, w:W, h:H/2}
+      ];
+    }
+    if(n === 3){
+      return [
+        {x:0, y:0, w:W/2, h:H/2},
+        {x:W/2, y:0, w:W/2, h:H/2},
+        {x:0, y:H/2, w:W, h:H/2}
+      ];
+    }
+    if(n === 4){
+      return [
+        {x:0, y:0, w:W/2, h:H/2},
+        {x:W/2, y:0, w:W/2, h:H/2},
+        {x:0, y:H/2, w:W/2, h:H/2},
+        {x:W/2, y:H/2, w:W/2, h:H/2}
+      ];
+    }
+    if(n === 5){
+      return [
+        {x:0, y:0, w:W/3, h:H/2},
+        {x:W/3, y:0, w:W/3, h:H/2},
+        {x:2*W/3, y:0, w:W/3, h:H/2},
+        {x:0, y:H/2, w:W/2, h:H/2},
+        {x:W/2, y:H/2, w:W/2, h:H/2}
+      ];
+    }
+    if(n === 6){
+      return [
+        {x:0, y:0, w:W/3, h:H/2},
+        {x:W/3, y:0, w:W/3, h:H/2},
+        {x:2*W/3, y:0, w:W/3, h:H/2},
+        {x:0, y:H/2, w:W/3, h:H/2},
+        {x:W/3, y:H/2, w:W/3, h:H/2},
+        {x:2*W/3, y:H/2, w:W/3, h:H/2}
+      ];
+    }
+    return [];
+  }
+
+  // draw one photo (with its own zoom/pan) into rect using "cover" cropping
+  function drawCover(photo, rect){
+    const img = photo.img;
+    const scale = photo.scale || 1;
+    const ir = img.width / img.height;
+    const rr = rect.w / rect.h;
+    let baseSw, baseSh;
+    if(ir > rr){
+      baseSh = img.height;
+      baseSw = baseSh * rr;
+    } else {
+      baseSw = img.width;
+      baseSh = baseSw / rr;
+    }
+    const sw = baseSw / scale;
+    const sh = baseSh / scale;
+    const baseSx = (img.width - sw) / 2;
+    const baseSy = (img.height - sh) / 2;
+    const sx = clamp(baseSx + (photo.panX || 0), 0, Math.max(0, img.width - sw));
+    const sy = clamp(baseSy + (photo.panY || 0), 0, Math.max(0, img.height - sh));
+    ctx.drawImage(img, sx, sy, sw, sh, rect.x, rect.y, rect.w, rect.h);
+  }
+
+  function wrapLines(text, font, maxWidth){
+    ctx.font = font;
+    const paragraphs = text.split('\n');
+    const lines = [];
+    paragraphs.forEach(par => {
+      if(par.trim() === ''){ lines.push(''); return; }
+      const words = par.split('');  // char-based wrap (works for CJK + latin)
+      let current = '';
+      for(let ch of words){
+        const test = current + ch;
+        if(ctx.measureText(test).width > maxWidth && current !== ''){
+          lines.push(current);
+          current = ch;
+        } else {
+          current = test;
+        }
+      }
+      if(current !== '') lines.push(current);
+    });
+    return lines;
+  }
+
+  function drawCaption(){
+    const text = captionEl.value;
+    if(!text || !text.trim()) return;
+
+    const baseSize = canvas.width * 0.06;
+    const fontSize = baseSize * sizeMultiplier;
+    const font = `900 ${fontSize}px "Noto Sans TC", "Microsoft JhengHei", sans-serif`;
+    const maxWidth = canvas.width * 0.86;
+
+    const lines = wrapLines(text, font, maxWidth);
+    const lineHeight = fontSize * 1.35;
+    const blockHeight = lines.length * lineHeight;
+    const margin = canvas.height * 0.055;
+
+    let startY;
+    if(position === 'top'){
+      startY = margin + lineHeight/2;
+    } else if(position === 'bottom'){
+      startY = canvas.height - margin - blockHeight + lineHeight/2;
+    } else {
+      startY = canvas.height/2 - blockHeight/2 + lineHeight/2;
+    }
+
+    ctx.font = font;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    let maxLineWidth = 0;
+    lines.forEach(l => {
+      const w = ctx.measureText(l).width;
+      if(w > maxLineWidth) maxLineWidth = w;
+    });
+
+    const padY = fontSize * 0.28;
+    const bgX = 0;
+    const bgY = startY - lineHeight/2 - padY;
+    const bgW = canvas.width;
+    const bgH = blockHeight + padY*2;
+
+    ctx.fillStyle = 'rgba(35,35,35,0.72)';
+    ctx.fillRect(bgX, bgY, bgW, bgH);
+
+    ctx.fillStyle = '#FFD400';
+    lines.forEach((line, i) => {
+      ctx.fillText(line, canvas.width/2, startY + i*lineHeight);
+    });
+  }
+
+  function roundRect(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
+  }
+
+  function render(){
+    if(photos.length < 1 || photos.length > 6){
+      renderEmpty();
+      return;
+    }
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0,0,canvas.width, canvas.height);
+
+    rects = getLayout(photos.length, canvas.width, canvas.height);
+    photos.forEach((p, i) => drawCover(p, rects[i]));
+
+    // thin separators between panels for a clean collage look
+    if(photos.length > 1){
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.lineWidth = 4;
+      rects.forEach(r => ctx.strokeRect(r.x, r.y, r.w, r.h));
+    }
+
+    photos.forEach((p, i) => drawPhotoLabel(p, rects[i]));
+
+    // highlight the currently selected photo
+    if(selectedIndex !== null && rects[selectedIndex]){
+      const r = rects[selectedIndex];
+      ctx.strokeStyle = '#f4c430';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(r.x+3, r.y+3, r.w-6, r.h-6);
+    }
+
+    drawCaption();
+    downloadBtn.disabled = false;
+  }
+
+  function loadFiles(fileList){
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    if(files.length < 1){
+      setStatus('請至少選擇 1 張照片', 'err');
+      return;
+    }
+    if(files.length > 6){
+      setStatus('最多只能選擇 6 張照片,已取前 6 張', 'err');
+    }
+    const use = files.slice(0, 6);
+    photos = [];
+    selectedIndex = null;
+    photoToolbar.style.display = 'none';
+    thumbsEl.innerHTML = '';
+
+    let loadedCount = 0;
+    use.forEach((file, i) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          photos[i] = { img, scale: 1, panX: 0, panY: 0, label: '' };
+          loadedCount++;
+
+          const t = document.createElement('div');
+          t.className = 't';
+          t.innerHTML = `<img src="${e.target.result}"><span class="idx">${i+1}</span>`;
+          thumbsEl.appendChild(t);
+
+          if(loadedCount === use.length){
+            setStatus(`已上傳 ${use.length} 張照片`, 'ok');
+            render();
+          }
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // --- photo interaction: drag to pan, tap to select/swap ---
+  function getCanvasPoint(e){
+    const bounding = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / bounding.width;
+    const scaleY = canvas.height / bounding.height;
+    const src = (e.touches && e.touches[0]) ? e.touches[0] : e;
+    return {
+      x: (src.clientX - bounding.left) * scaleX,
+      y: (src.clientY - bounding.top) * scaleY
+    };
+  }
+
+  function findRectIndex(pt){
+    for(let i=0; i<rects.length; i++){
+      const r = rects[i];
+      if(pt.x >= r.x && pt.x <= r.x + r.w && pt.y >= r.y && pt.y <= r.y + r.h) return i;
+    }
+    return -1;
+  }
+
+  // black-bg/white-text corner label for one photo cell.
+  // top-row cells (rect.y === 0) get top-right label; other rows get bottom-right.
+  function drawPhotoLabel(photo, rect){
+    const text = (photo.label || '').trim();
+    if(!text) return;
+
+    const fontSize = Math.max(16, rect.w * 0.045);
+    const font = `700 ${fontSize}px "Noto Sans TC", "Microsoft JhengHei", sans-serif`;
+    ctx.font = font;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+
+    const padX = fontSize * 0.55;
+    const padY = fontSize * 0.4;
+    const textW = ctx.measureText(text).width;
+    const boxW = textW + padX * 2;
+    const boxH = fontSize + padY * 2;
+    const margin = Math.max(8, rect.w * 0.02);
+
+    const boxX = rect.x + rect.w - boxW - margin;
+    const isTopRow = rect.y === 0;
+    const boxY = isTopRow
+      ? rect.y + margin
+      : rect.y + rect.h - boxH - margin;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.88)';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(text, boxX + padX, boxY + boxH/2);
+  }
+
+  function updateSelectionUI(){
+    if(selectedIndex === null || !photos[selectedIndex]){
+      photoToolbar.style.display = 'none';
+      return;
+    }
+    photoToolbar.style.display = 'flex';
+    selInfo.textContent = `已選取第 ${selectedIndex+1} 張照片`;
+    photoZoomPct.textContent = Math.round((photos[selectedIndex].scale||1)*100) + '%';
+    photoLabelInput.value = photos[selectedIndex].label || '';
+  }
+
+  function handleTap(index){
+    if(selectedIndex === null){
+      selectedIndex = index;
+    } else if(selectedIndex === index){
+      selectedIndex = null;
+    } else {
+      const tmp = photos[selectedIndex];
+      photos[selectedIndex] = photos[index];
+      photos[index] = tmp;
+      selectedIndex = null;
+    }
+    updateSelectionUI();
+    render();
+  }
+
+  function onPointerDown(e){
+    if(photos.length < 1) return;
+    const pt = getCanvasPoint(e);
+    const idx = findRectIndex(pt);
+    if(idx < 0) return;
+    e.preventDefault();
+    dragState = {
+      index: idx,
+      startX: pt.x, startY: pt.y,
+      moved: false,
+      startPanX: photos[idx].panX || 0,
+      startPanY: photos[idx].panY || 0
+    };
+  }
+
+  function onPointerMove(e){
+    if(!dragState) return;
+    const pt = getCanvasPoint(e);
+    const dx = pt.x - dragState.startX;
+    const dy = pt.y - dragState.startY;
+    if(Math.abs(dx) + Math.abs(dy) > 4) dragState.moved = true;
+    if(!dragState.moved) return;
+
+    e.preventDefault();
+    const idx = dragState.index;
+    const rect = rects[idx];
+    const photo = photos[idx];
+    if(!rect || !photo) return;
+    const img = photo.img;
+    const ir = img.width / img.height, rr = rect.w / rect.h;
+    let baseSw, baseSh;
+    if(ir > rr){ baseSh = img.height; baseSw = baseSh * rr; }
+    else { baseSw = img.width; baseSh = baseSw / rr; }
+    const scale = photo.scale || 1;
+    const sw = baseSw / scale, sh = baseSh / scale;
+    const sourceDx = dx * (sw / rect.w);
+    const sourceDy = dy * (sh / rect.h);
+    photo.panX = dragState.startPanX - sourceDx;
+    photo.panY = dragState.startPanY - sourceDy;
+    render();
+  }
+
+  function onPointerUp(){
+    if(!dragState) return;
+    if(!dragState.moved){
+      handleTap(dragState.index);
+    }
+    dragState = null;
+  }
+
+  canvas.addEventListener('mousedown', onPointerDown);
+  window.addEventListener('mousemove', onPointerMove);
+  window.addEventListener('mouseup', onPointerUp);
+  canvas.addEventListener('touchstart', onPointerDown, {passive:false});
+  window.addEventListener('touchmove', onPointerMove, {passive:false});
+  window.addEventListener('touchend', onPointerUp);
+
+  photoZoomIn.addEventListener('click', () => {
+    if(selectedIndex === null) return;
+    const p = photos[selectedIndex];
+    p.scale = clamp((p.scale||1) * 1.15, 1, 4);
+    updateSelectionUI();
+    render();
+  });
+  photoZoomOut.addEventListener('click', () => {
+    if(selectedIndex === null) return;
+    const p = photos[selectedIndex];
+    p.scale = clamp((p.scale||1) / 1.15, 1, 4);
+    updateSelectionUI();
+    render();
+  });
+  photoLabelInput.addEventListener('input', () => {
+    if(selectedIndex === null) return;
+    photos[selectedIndex].label = photoLabelInput.value;
+    render();
+  });
+
+  photoReset.addEventListener('click', () => {
+    if(selectedIndex === null) return;
+    const p = photos[selectedIndex];
+    p.scale = 1; p.panX = 0; p.panY = 0;
+    updateSelectionUI();
+    render();
+  });
+
+  clearBtn.addEventListener('click', () => {
+    photos = [];
+    rects = [];
+    selectedIndex = null;
+    dragState = null;
+    position = 'middle';
+    sizeMultiplier = 1;
+
+    fileInput.value = '';
+    thumbsEl.innerHTML = '';
+    captionEl.value = '';
+    photoLabelInput.value = '';
+    sizePct.textContent = '100%';
+    [...posSeg.children].forEach(b => b.classList.toggle('active', b.dataset.pos === 'middle'));
+
+    setStatus('尚未上傳照片', '');
+    updateSelectionUI();
+    renderEmpty();
+  });
+
+  // --- events ---
+  dropZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => loadFiles(e.target.files));
+
+  ['dragover','dragenter'].forEach(evt => {
+    dropZone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      dropZone.classList.add('drag');
+    });
+  });
+  ['dragleave','drop'].forEach(evt => {
+    dropZone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag');
+    });
+  });
+  dropZone.addEventListener('drop', (e) => {
+    if(e.dataTransfer.files.length) loadFiles(e.dataTransfer.files);
+  });
+
+  captionEl.addEventListener('input', render);
+
+  posSeg.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    position = btn.dataset.pos;
+    [...posSeg.children].forEach(b => b.classList.toggle('active', b === btn));
+    render();
+  });
+
+  sizeUpBtn.addEventListener('click', () => {
+    sizeMultiplier = Math.min(3, sizeMultiplier * 1.15);
+    sizePct.textContent = Math.round(sizeMultiplier*100) + '%';
+    render();
+  });
+  sizeDownBtn.addEventListener('click', () => {
+    sizeMultiplier = Math.max(0.4, sizeMultiplier / 1.15);
+    sizePct.textContent = Math.round(sizeMultiplier*100) + '%';
+    render();
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    if(downloadBtn.disabled) return;
+    try{
+      canvas.toBlob((blob) => {
+        if(!blob){
+          setStatus('下載失敗,請重試或換個瀏覽器', 'err');
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+
+        if(isIOS()){
+          // Safari on iOS doesn't reliably support the <a download> flow,
+          // so show the image full-size for a long-press "save image" instead.
+          saveOverlayImg.src = url;
+          saveOverlay.classList.add('show');
+          return;
+        }
+
+        const link = document.createElement('a');
+        link.download = 'photo-collage.png';
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      }, 'image/png');
+    } catch(err){
+      setStatus('下載失敗:' + err.message, 'err');
+    }
+  });
+
+  saveOverlayClose.addEventListener('click', () => {
+    saveOverlay.classList.remove('show');
+    if(saveOverlayImg.src){
+      URL.revokeObjectURL(saveOverlayImg.src);
+      saveOverlayImg.src = '';
+    }
+  });
+
+  renderEmpty();
+})();
+</script>
+</body>
+</html>
